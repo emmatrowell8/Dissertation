@@ -5,9 +5,13 @@ setwd("~/Desktop/Masters/Dissertation/Data")
 library(tidyverse)
 library(sf)
 library(tmap)
+library(tmaptools)
 library(naniar)
 library(ggpubr)
 library(ggplot2)
+library(stringr)
+library(rgdal)
+library(dplyr)
 
 #Import datasets
 GCSE_grades <- read_csv('Education/2019_GCSEs.csv')
@@ -21,9 +25,10 @@ healthy_life_expec_m <- read_csv('Health/male_healthy_life_expectancy_2019.csv')
 maternity_care <- read_csv('Health/maternal_health_care_PHE.csv')
 
 #Import shapefiles
-uk_UAs
+uk_UAs <- st_read('Boundaries/Counties_and_Unitary_Authorities_(December_2020)_UK_BFC/Counties_and_Unitary_Authorities_(December_2020)_UK_BFC.shp')
 uk_constituencies <- st_read('Boundaries/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK-shp/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK.shp')
-uk_police_forces
+uk_police_forces <- st_read('Boundaries/Police_Force_Areas_December_2016_EW_BFC_v2-shp/Police_Force_Areas_December_2016_EW_BFC_v2.shp')
+uk_nuts_3 <- st_read('Boundaries/NUTS_Level_3_(January_2018)_Boundaries/NUTS_Level_3_(January_2018)_Boundaries.shp')
 
 #Tidy data - Remove unneeded columns
 GCSE_tidy <- GCSE_grades %>%
@@ -42,7 +47,7 @@ sexual_offs_tidy <- sexual_offences %>%
   subset(select = -c(4:6))
 
 mps_tidy <- mps %>%
-  subset(select = -c(1:3, 5))
+  subset(select = -c(1:3, 6))
 
 healthy_life_f_tidy <- healthy_life_expec_f %>%
   subset(select = -c(1:4, 7, 9:12, 14:26))
@@ -129,37 +134,107 @@ pay_gap_tidy <- pay_gap_tidy %>%
 pay_gap_tidy <- pay_gap_tidy %>%
   replace_with_na(replace = list(Mean = 'x'))
 
-#Tidy data - Format data types
+#Tidy data - Format data types and remove unneeded characters
+tquals_tidy$Percent_level_4_and_above <- as.numeric(gsub("%", "", tquals_tidy$Percent_level_4_and_above))
 
+labour_force_tidy$Area <- stringr::str_replace(labour_force_tidy$Area, "lacu:", "")
+labour_force_tidy$Percent_male_employment <- as.numeric(labour_force_tidy$Percent_male_employment)
+labour_force_tidy$Percent_female_employment <- as.numeric(labour_force_tidy$Percent_female_employment)
 
+pay_gap_tidy$Median <- as.numeric(pay_gap_tidy$Median)
+pay_gap_tidy$Mean <- as.numeric(pay_gap_tidy$Mean)
 
+sexual_offs_tidy$Rate_per_1000_population <- as.numeric(sexual_offs_tidy$Rate_per_1000_population)
 
-#Tidy data - 
+#Join datasets to shapefiles and fit to study area (England)
+GCSE_joined <- merge(uk_UAs, GCSE_tidy, by.x = "CTYUA20CD", by.y = "new_la_code")
 
+tquals_tidy <- tquals_tidy[-c(134:169), ]
+tertiary_quals_joined <- merge(uk_nuts_3, tquals_tidy, by.x = "nuts318cd", by.y = "Code")
+
+labour_force_tidy <- labour_force_tidy[-c(153:225), ]
+labour_force_joined <- merge(uk_UAs, labour_force_tidy, by.x = "CTYUA20NM", by.y = "Area")
+
+pay_gap_tidy <- pay_gap_tidy[grepl("E", pay_gap_tidy$UA_Code), ]
+pay_gap_joined <- merge(uk_UAs, pay_gap_tidy, by.x = "CTYUA20CD", by.y = "UA_Code")
+
+sexual_offs_joined <- merge(uk_police_forces, sexual_offs_tidy, by.x = "PFA16CD", by.y = "Area_code")
+
+mps_joined <- merge(uk_constituencies, mps_tidy, by.x = 'pcon17nm', by.y = 'Constituency')
+mps_joined <- mps_joined[grepl("E", mps_joined$pcon17cd), ]
+
+f_life_expec_joined <- merge(uk_UAs, healthy_life_f_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
+
+m_life_expec_joined <- merge(uk_UAs, healthy_life_m_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
+
+maternity_care_joined <- merge(uk_UAs, maternity_care_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
 
 #Explore datasets
+summary(GCSE_joined$percent_grade_5_plus_maths_english)
 
+summary(tertiary_quals_joined$Percent_level_4_and_above)
 
+summary(labour_force_joined$Percent_male_employment)
+summary(labour_force_joined$Percent_female_employment)
 
-#Export tidied data to QGIS for initial visualisation
-write_csv(GCSE_tidy, file = 'GCSE_tidy.csv')
-write_csv(tquals_tidy, file = 'tertiary_qualification_tidy.csv')
-write_csv(labour_force_tidy, file = 'labour_force_tidy.csv')
-write_csv(pay_gap_tidy, file = 'gender_pay_gap_tidy.csv')
-write_csv(sexual_offs_tidy, file = 'sexual_offences_tidy.csv')
-write_csv(mps_tidy, file = 'mps_tidy.csv')
-write_csv(healthy_life_f_tidy, file = 'female_healthy_life_expectancy_tidy.csv')
-write_csv(healthy_life_m_tidy, file = 'male_healthy_life_expectancy_tidy.csv')
-write_csv(maternity_care_tidy, file = 'early_access_to_maternal_care_tidy.csv')
+summary(pay_gap_joined$Mean)
+summary(pay_gap_joined$Median)
 
-#Create new data frame containing all indicators
+summary(sexual_offs_joined$Rate_per_1000_population)
+
+mps_tidy %>% count(Male)
+mps_tidy %>% count(Female)
+
+summary(f_life_expec_joined$Healthy_life_expectancy)
+summary(m_life_expec_joined$Healthy_life_expectancy)
+
+summary(maternity_care_joined$Percentage_with_early_access)
+
+#Export tidied data to QGIS for initial visualisation 
+st_write(GCSE_joined, 'GCSE_joined.shp')
+
+st_write(tertiary_quals_joined, 'tertiary_quals.shp')
+
+st_write(labour_force_joined, 'labour_force_joined.shp')
+
+st_write(pay_gap_joined, 'gender_pay_gap.shp')
+
+st_write(sexual_offs_joined, 'sexual_offences.shp')
+
+st_write(mps_joined, 'mps_joined.shp')
+
+st_write(f_life_expec_joined, 'female_healthy_life_expectancy.shp')
+st_write(m_life_expec_joined, 'male_healthy_life_expectancy.shp')
+
+st_write(maternity_care_joined, 'access_to_maternity_care.shp')
+
+#Transform to sf objects
+GCSE_sf <- st_as_sf(GCSE_joined)
+
+tquals_sf <- st_as_sf(tertiary_quals_joined)
+
+labour_force_sf <- st_as_sf(labour_force_joined)
+
+pay_gap_sf <- st_as_sf(pay_gap_joined)
+
+sexual_offs_sf <- st_as_sf(sexual_offs_joined)
+
+mps_sf <- st_as_sf(mps_joined)
+
+f_life_expec_sf <- st_as_sf(f_life_expec_joined)
+m_life_expec_sf <- st_as_sf(m_life_expec_joined)
+
+maternity_sf <- st_as_sf(maternity_care_joined)
+
+#SCALES???? UA? constituency/ police area etc. 
+
+#Create new data frame containing all indicators (the index)
 
 #Calculations/ ratios 
 
-parliment_seats  
+ 
+
 #Create index function (?) 
-
-
 
 
 #Calculate index scores
