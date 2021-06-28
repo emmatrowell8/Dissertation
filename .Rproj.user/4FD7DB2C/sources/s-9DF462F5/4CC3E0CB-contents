@@ -1,0 +1,32 @@
+#World GII analysis
+world_GII <- read_csv('World/2020_statistical_annex_table_5.csv')
+world <- st_read('Boundaries/ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp')
+
+world_GII_tidy <- world_GII %>%
+  subset(select = -c(4:20))
+world_GII_tidy <- world_GII_tidy[!is.na(world_GII_tidy$X1), ]
+world_GII_tidy <- world_GII_tidy[-c(1),]
+
+world_GII_tidy <- world_GII_tidy %>%
+  rename(
+    HDI_rank = `X1`,
+    Country = `Table 5. Gender Inequality Index`,
+    GII_2019 = `X3`
+  )
+
+world_GII_tidy <- world_GII_tidy %>%
+  replace_with_na(replace = list(GII_2019 = '..'))
+
+world_GII_tidy$HDI_rank <- as.numeric(world_GII_tidy$HDI_rank)
+world_GII_tidy$GII_2019 <- as.numeric(world_GII_tidy$GII_2019)
+
+summary(world_GII_tidy$GII_2019)
+
+world_pearson <- cor.test(world_GII_tidy$HDI_rank, world_GII_tidy$GII_2019,
+                          method = 'pearson')
+print(world_pearson)
+
+ggscatter(world_GII_tidy, x = 'HDI_rank', y = 'GII_2019',
+          add = 'reg.line', conf.int = TRUE,
+          cor.coef = TRUE, cor.method = 'pearson',
+          xlab = 'Human Development Index Rank (2019)', ylab = 'Gender Ineqaulity Index Score (2019)')
