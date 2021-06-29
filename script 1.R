@@ -16,7 +16,7 @@ library(spdep)
 
 #Import datasets
 GCSE_grades <- read_csv('Education/2019_GCSEs.csv')
-tertiary_quals <- read_csv('Education/qualificationsbynuts3.csv')
+education <- read_csv('Education/level_4_and_no_quals.csv')
 labour_force <- read_csv('Work/labour_force.csv')
 gender_pay_gap <- read_csv('Work/gender_pay_gap.csv')
 sexual_offences <- read_csv('Safety/sexual-offences-2019:20.csv')
@@ -26,17 +26,19 @@ healthy_life_expec_m <- read_csv('Health/male_healthy_life_expectancy_2019.csv')
 maternity_care <- read_csv('Health/maternal_health_care_PHE.csv')
 
 #Import shapefiles
+eng_regions_UAs <- st_read('Boundaries/regions_and_counties.shp')
 eng_UAs <- st_read('Boundaries/Counties_and_Unitary_Authorities_(December_2020)_UK_BFC/Counties_and_Unitary_Authorities_(December_2020)_UK_BFC.shp')
-uk_constituencies <- st_read('Boundaries/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK-shp/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK.shp')
-uk_police_forces <- st_read('Boundaries/Police_Force_Areas_December_2016_EW_BFC_v2-shp/Police_Force_Areas_December_2016_EW_BFC_v2.shp')
-uk_nuts_3 <- st_read('Boundaries/NUTS_Level_3_(January_2018)_Boundaries/NUTS_Level_3_(January_2018)_Boundaries.shp')
+constituencies <- st_read('Boundaries/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK-shp/Westminster_Parliamentary_Constituencies__December_2017__Boundaries_UK.shp')
+police_forces <- st_read('Boundaries/Police_Force_Areas_December_2016_EW_BFC_v2-shp/Police_Force_Areas_December_2016_EW_BFC_v2.shp')
+eng_constituencies_UAs <- st_read('Boundaries/constituencies_and_UAs.shp')
+eng_police_forces_UAs <- st_read('Boundaries/counties_and_police_areas.shp')
 
 #Tidy data - Remove unneeded columns
 GCSE_tidy <- GCSE_grades %>%
   subset(select = -c(1:8, 11:13, 15:23, 25:115))
 
-tquals_tidy <- tertiary_quals %>%
-  subset(select = -c(3:8, 10:13))
+education_tidy <- education %>%
+  subset(select = -c(2, 3, 5:7, 9:11, 13:15, 17))
 
 labour_force_tidy <- labour_force %>%
   subset(select = -c(2, 3, 5:7, 9))
@@ -61,8 +63,8 @@ maternity_care_tidy <- maternity_care %>%
 #Tidy data - Remove unneeded rows
 GCSE_tidy <- GCSE_tidy[!is.na(GCSE_tidy$new_la_code), ]
 
-tquals_tidy <- tquals_tidy[!is.na(tquals_tidy$X2), ]
-tquals_tidy <- tquals_tidy[-c(1),]
+education_tidy <- education_tidy[!is.na(education_tidy$X4), ]
+education_tidy <- education_tidy[-c(1),]
   
 labour_force_tidy <- labour_force_tidy[!is.na(labour_force_tidy$X8), ]
 labour_force_tidy <- labour_force_tidy[-c(1),]
@@ -79,11 +81,13 @@ GCSE_tidy <- GCSE_tidy %>%
     percent_grade_5_plus_maths_english = `pt_l2basics_95`
   )
 
-tquals_tidy <- tquals_tidy %>%
+education_tidy <- education_tidy %>%
   rename(
-    Code = `Highest Level of Qualifications Held by NUTS 3 Subregion (workplace basis),  Jan-Dec 2017`,
-    UA = `X2`,
-    Percent_level_4_and_above = `X9`
+    UA = `annual population survey`,
+    Percent_level_4_male = `X4`,
+    Percent_level_4_female = `X8`,
+    No_quals_male = `X12`, 
+    No_quals_female = `X16`
   )
 
 labour_force_tidy <- labour_force_tidy %>%
@@ -123,6 +127,15 @@ maternity_care_tidy <- maternity_care_tidy %>%
   )
 
 #Tidy data - Format missing data
+education_tidy <- education_tidy %>%
+  replace_with_na(replace = list(Percent_level_4_male = c('-', '!')))
+education_tidy <- education_tidy %>%
+  replace_with_na(replace = list(Percent_level_4_female = c('-', '!')))
+education_tidy <- education_tidy %>%
+  replace_with_na(replace = list(No_quals_male = c('-', '!')))
+education_tidy <- education_tidy %>%
+  replace_with_na(replace = list(No_quals_female = c('-', '!')))
+
 labour_force_tidy <- labour_force_tidy %>%
   replace_with_na(replace = list(Percent_male_employment = '-'))
 labour_force_tidy <- labour_force_tidy %>%
@@ -136,7 +149,10 @@ pay_gap_tidy <- pay_gap_tidy %>%
   replace_with_na(replace = list(Mean = 'x'))
 
 #Tidy data - Format data types and remove unneeded characters
-tquals_tidy$Percent_level_4_and_above <- as.numeric(gsub("%", "", tquals_tidy$Percent_level_4_and_above))
+education_tidy$Percent_level_4_male <- as.numeric(education_tidy$Percent_level_4_male)
+education_tidy$Percent_level_4_female <- as.numeric(education_tidy$Percent_level_4_female)
+education_tidy$No_quals_male <- as.numeric(education_tidy$No_quals_male)
+education_tidy$No_quals_female <- as.numeric(education_tidy$No_quals_female)
 
 labour_force_tidy$Area <- stringr::str_replace(labour_force_tidy$Area, "lacu:", "")
 labour_force_tidy$Percent_male_employment <- as.numeric(labour_force_tidy$Percent_male_employment)
@@ -147,33 +163,47 @@ pay_gap_tidy$Mean <- as.numeric(pay_gap_tidy$Mean)
 
 sexual_offs_tidy$Rate_per_1000_population <- as.numeric(sexual_offs_tidy$Rate_per_1000_population)
 
-#Join datasets to shapefiles and fit to study area (England)
-GCSE_joined <- merge(uk_UAs, GCSE_tidy, by.x = "CTYUA20CD", by.y = "new_la_code")
+#Split datasets into individual variables 
+level_4 <- data.frame(education_tidy$UA, education_tidy$Percent_level_4_male, education_tidy$Percent_level_4_female)
+for (col in 1:ncol(level_4)) {
+  colnames(level_4)[col] <- sub("education_tidy.", "", colnames(level_4)[col])
+}
 
-tquals_tidy <- tquals_tidy[-c(134:169), ]
-tertiary_quals_joined <- merge(uk_nuts_3, tquals_tidy, by.x = "nuts318cd", by.y = "Code")
+no_quals <- data.frame(education_tidy$UA, education_tidy$No_quals_male, education_tidy$No_quals_female)
+for (col in 1:ncol(no_quals)) {
+  colnames(no_quals)[col] <- sub("education_tidy.", "", colnames(no_quals)[col])
+}
+
+#Join datasets to shapefiles and fit to study area (England)
+GCSE_joined <- merge(eng_UAs, GCSE_tidy, by.x = "CTYUA20CD", by.y = "new_la_code")
+
+level_4_joined <- merge(eng_UAs, level_4, by.x = "CTYUA20NM", by.y = "UA")
+no_quals_joined <- merge(eng_UAs, no_quals, by.x = "CTYUA20NM", by.y = "UA")
 
 labour_force_tidy <- labour_force_tidy[-c(153:225), ]
-labour_force_joined <- merge(uk_UAs, labour_force_tidy, by.x = "CTYUA20NM", by.y = "Area")
+labour_force_joined <- merge(eng_UAs, labour_force_tidy, by.x = "CTYUA20NM", by.y = "Area")
 
 pay_gap_tidy <- pay_gap_tidy[grepl("E", pay_gap_tidy$UA_Code), ]
-pay_gap_joined <- merge(uk_UAs, pay_gap_tidy, by.x = "CTYUA20CD", by.y = "UA_Code")
+pay_gap_joined <- merge(eng_UAs, pay_gap_tidy, by.x = "CTYUA20CD", by.y = "UA_Code")
 
-sexual_offs_joined <- merge(uk_police_forces, sexual_offs_tidy, by.x = "PFA16CD", by.y = "Area_code")
+sexual_offs_joined <- merge(police_forces, sexual_offs_tidy, by.x = "PFA16NM", by.y = "Area_code")
 
-mps_joined <- merge(uk_constituencies, mps_tidy, by.x = 'pcon17nm', by.y = 'Constituency')
+mps_joined <- merge(constituencies, mps_tidy, by.x = 'pcon17nm', by.y = 'Constituency')
 mps_joined <- mps_joined[grepl("E", mps_joined$pcon17cd), ]
 
-f_life_expec_joined <- merge(uk_UAs, healthy_life_f_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
+f_life_expec_joined <- merge(eng_UAs, healthy_life_f_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
 
-m_life_expec_joined <- merge(uk_UAs, healthy_life_m_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
+m_life_expec_joined <- merge(eng_UAs, healthy_life_m_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
 
-maternity_care_joined <- merge(uk_UAs, maternity_care_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
+maternity_care_joined <- merge(eng_UAs, maternity_care_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
 
 #Explore datasets
 summary(GCSE_joined$percent_grade_5_plus_maths_english)
 
-summary(tertiary_quals_joined$Percent_level_4_and_above)
+summary(level_4_joined$Percent_level_4_male)
+summary(level_4_joined$Percent_level_4_female)
+summary(no_quals_joined$No_quals_male)
+summary(no_quals_joined$No_quals_female)
 
 summary(labour_force_joined$Percent_male_employment)
 summary(labour_force_joined$Percent_female_employment)
@@ -194,7 +224,8 @@ summary(maternity_care_joined$Percentage_with_early_access)
 #Export tidied data to QGIS for initial visualisation 
 st_write(GCSE_joined, 'GCSE_joined.shp', append = TRUE)
 
-st_write(tertiary_quals_joined, 'tertiary_quals.shp', append = TRUE)
+st_write(level_4_joined, 'level_4.shp', append = TRUE)
+st_write(no_quals_joined, 'no_quals.shp', append = TRUE)
 
 st_write(labour_force_joined, 'labour_force_joined.shp', append = TRUE)
 
@@ -212,7 +243,8 @@ st_write(maternity_care_joined, 'access_to_maternity_care.shp', append = TRUE)
 #Transform to sf objects
 GCSE_sf <- st_as_sf(GCSE_joined)
 
-tquals_sf <- st_as_sf(tertiary_quals_joined)
+level_4_sf <- st_as_sf(level_4_joined)
+no_quals_sf <- st_as_sf(no_quals_joined)
 
 labour_force_sf <- st_as_sf(labour_force_joined)
 
@@ -228,6 +260,12 @@ m_life_expec_sf <- st_as_sf(m_life_expec_joined)
 maternity_sf <- st_as_sf(maternity_care_joined)
 
 #SCALES???? UA? constituency/ police area etc. 
+#spatial join?? 
+#HELP!!!!!!!!!!!!!!!!!!!
+
+
+#Standardise administrative area scale 
+
 
 #Create new data frame containing all indicators (the index)
 inequality_data 
@@ -240,6 +278,8 @@ index
 #Calculations/ ratios 
 
 parlimentary_seats
+
+#eg sum/ group by ua and calculate ratio of male to female mps (PSA workbook for code?) 
 
 #Create index function (?) 
 
@@ -255,6 +295,16 @@ eng_neighbours <- poly2nb(eng_UAs)
 plot(eng_UAs$geometry)
 plot(eng_neighbours, coords = eng_UAs$geometry, add = TRUE, col = 'red')
 spatial_weights <- nb2listw(eng_neighbours, zero.policy = TRUE)
+
+#Global Moran's I
+
+
+#Local Moran's I
+
+
+
+#Getis Ord Gi*
+
 
 #Report results 
 
