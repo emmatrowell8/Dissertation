@@ -13,6 +13,8 @@ library(stringr)
 library(rgdal)
 library(dplyr)
 library(spdep)
+library(RColorBrewer)
+library(leaflet)
 
 #Import datasets
 GCSE_grades <- read_csv('Education/2019_GCSEs.csv')
@@ -164,6 +166,12 @@ pay_gap_tidy$Mean <- as.numeric(pay_gap_tidy$Mean)
 sexual_offs_tidy$Rate_per_1000_population <- as.numeric(sexual_offs_tidy$Rate_per_1000_population)
 
 #Split datasets into individual variables 
+GCSE_girls <- GCSE_tidy %>%
+  subset(characteristic_gender == 'Girls')
+
+GCSE_boys <- GCSE_tidy %>%
+  subset(characteristic_gender == 'Boys')
+
 level_4 <- data.frame(education_tidy$UA, education_tidy$Percent_level_4_male, education_tidy$Percent_level_4_female)
 for (col in 1:ncol(level_4)) {
   colnames(level_4)[col] <- sub("education_tidy.", "", colnames(level_4)[col])
@@ -175,7 +183,8 @@ for (col in 1:ncol(no_quals)) {
 }
 
 #Join datasets to shapefiles and fit to study area (England)
-GCSE_joined <- merge(eng_UAs, GCSE_tidy, by.x = "CTYUA20CD", by.y = "new_la_code")
+GCSE_girls_joined <- merge(eng_UAs, GCSE_girls, by.x = "CTYUA20CD", by.y = "new_la_code")
+GCSE_boys_joined <- merge(eng_UAs, GCSE_boys, by.x = "CTYUA20CD", by.y = "new_la_code")
 
 level_4_joined <- merge(eng_UAs, level_4, by.x = "CTYUA20NM", by.y = "UA")
 no_quals_joined <- merge(eng_UAs, no_quals, by.x = "CTYUA20NM", by.y = "UA")
@@ -198,7 +207,8 @@ m_life_expec_joined <- merge(eng_UAs, healthy_life_m_tidy, by.x = "CTYUA20CD", b
 maternity_care_joined <- merge(eng_UAs, maternity_care_tidy, by.x = "CTYUA20CD", by.y = "Area Code")
 
 #Explore datasets
-summary(GCSE_joined$percent_grade_5_plus_maths_english)
+summary(GCSE_girls_joined$percent_grade_5_plus_maths_english)
+summary(GCSE_boys_joined$percent_grade_5_plus_maths_english)
 
 summary(level_4_joined$Percent_level_4_male)
 summary(level_4_joined$Percent_level_4_female)
@@ -221,27 +231,9 @@ summary(m_life_expec_joined$Healthy_life_expectancy)
 
 summary(maternity_care_joined$Percentage_with_early_access)
 
-#Export tidied data to QGIS for initial visualisation 
-st_write(GCSE_joined, 'GCSE_joined.shp', append = TRUE)
-
-st_write(level_4_joined, 'level_4.shp', append = TRUE)
-st_write(no_quals_joined, 'no_quals.shp', append = TRUE)
-
-st_write(labour_force_joined, 'labour_force_joined.shp', append = TRUE)
-
-st_write(pay_gap_joined, 'gender_pay_gap.shp', append = TRUE)
-
-st_write(sexual_offs_joined, 'sexual_offences.shp', append = TRUE)
-
-st_write(mps_joined, 'mps_joined.shp', append = TRUE)
-
-st_write(f_life_expec_joined, 'female_healthy_life_expectancy.shp', append = TRUE)
-st_write(m_life_expec_joined, 'male_healthy_life_expectancy.shp', append = TRUE)
-
-st_write(maternity_care_joined, 'access_to_maternity_care.shp', append = TRUE)
-
 #Transform to sf objects
-GCSE_sf <- st_as_sf(GCSE_joined)
+GCSE_girls_sf <- st_as_sf(GCSE_girls_joined)
+GCSE_boys_sf <- st_as_sf(GCSE_boys_joined)
 
 level_4_sf <- st_as_sf(level_4_joined)
 no_quals_sf <- st_as_sf(no_quals_joined)
@@ -259,12 +251,54 @@ m_life_expec_sf <- st_as_sf(m_life_expec_joined)
 
 maternity_sf <- st_as_sf(maternity_care_joined)
 
+#Explore the data using interactive maps
+tmap_mode('view')
+
+tm_shape(GCSE_sf) +
+  tm_borders('black', alpha = 0.5) +
+  
+
+
+
+tm_shape(pay_gap_sf) +
+  tm_borders('black', alpha = 0.5) +
+  tm_fill(col = 'Mean', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
+  tm_layout(title = 'Mean gender pay gap')
+
+
+
+
+
+#Export tidied data to QGIS to create visualisations for write-up 
+st_write(GCSE_girls_sf, 'GCSE_girls_joined.shp', append = TRUE)
+st_write(GCSE_boys_sf, 'GCSE_boys_joined.shp', append = TRUE)
+
+st_write(level_4_sf, 'level_4.shp', append = TRUE)
+st_write(no_quals_sf, 'no_quals.shp', append = TRUE)
+
+st_write(labour_force_sf, 'labour_force_joined.shp', append = TRUE)
+
+st_write(pay_gap_sf, 'gender_pay_gap.shp', append = TRUE)
+
+st_write(sexual_offs_sf, 'sexual_offences.shp', append = TRUE)
+
+st_write(mps_sf, 'mps_joined.shp', append = TRUE)
+
+st_write(f_life_expec_sf, 'female_healthy_life_expectancy.shp', append = TRUE)
+st_write(m_life_expec_sf, 'male_healthy_life_expectancy.shp', append = TRUE)
+
+st_write(maternity_care_sf, 'access_to_maternity_care.shp', append = TRUE)
+
+
+
 #SCALES???? UA? constituency/ police area etc. 
 #spatial join?? 
 #HELP!!!!!!!!!!!!!!!!!!!
 
 
 #Standardise administrative area scale 
+
+#join mps and sexual offences to new shapefiles with UAs
 
 
 #Create new data frame containing all indicators (the index)
