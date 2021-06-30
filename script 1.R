@@ -177,17 +177,39 @@ for (col in 1:ncol(level_4)) {
   colnames(level_4)[col] <- sub("education_tidy.", "", colnames(level_4)[col])
 }
 
+level_4_female <- data.frame(level_4$UA,level_4$Percent_level_4_female)
+for (col in 1:ncol(level_4_female)) {
+  colnames(level_4_female)[col] <- sub("level_4.", "", colnames(level_4_female)[col])
+}
+
+level_4_male <- data.frame(level_4$UA,level_4$Percent_level_4_male)
+for (col in 1:ncol(level_4_male)) {
+  colnames(level_4_male)[col] <- sub("level_4.", "", colnames(level_4_male)[col])
+}
+
 no_quals <- data.frame(education_tidy$UA, education_tidy$No_quals_male, education_tidy$No_quals_female)
 for (col in 1:ncol(no_quals)) {
   colnames(no_quals)[col] <- sub("education_tidy.", "", colnames(no_quals)[col])
+}
+
+no_quals_female <- data.frame(no_quals$UA, no_quals$No_quals_female)
+for (col in 1:ncol(no_quals_female)) {
+  colnames(no_quals_female)[col] <- sub("no_quals.", "", colnames(no_quals_female)[col])
+}
+
+no_quals_male <- data.frame(no_quals$UA, no_quals$No_quals_male)
+for (col in 1:ncol(no_quals_male)) {
+  colnames(no_quals_male)[col] <- sub("no_quals.", "", colnames(no_quals_male)[col])
 }
 
 #Join datasets to shapefiles and fit to study area (England)
 GCSE_girls_joined <- merge(eng_UAs, GCSE_girls, by.x = "CTYUA20CD", by.y = "new_la_code")
 GCSE_boys_joined <- merge(eng_UAs, GCSE_boys, by.x = "CTYUA20CD", by.y = "new_la_code")
 
-level_4_joined <- merge(eng_UAs, level_4, by.x = "CTYUA20NM", by.y = "UA")
-no_quals_joined <- merge(eng_UAs, no_quals, by.x = "CTYUA20NM", by.y = "UA")
+level_4_female_joined <- merge(eng_UAs, level_4_female, by.x = "CTYUA20NM", by.y = "UA")
+level_4_male_joined <- merge(eng_UAs, level_4_male, by.x = "CTYUA20NM", by.y = "UA")
+no_quals_female_joined <- merge(eng_UAs, no_quals_female, by.x = "CTYUA20NM", by.y = "UA")
+no_quals_male_joined <- merge(eng_UAs, no_quals_male, by.x = "CTYUA20NM", by.y = "UA")
 
 labour_force_tidy <- labour_force_tidy[-c(153:225), ]
 labour_force_joined <- merge(eng_UAs, labour_force_tidy, by.x = "CTYUA20NM", by.y = "Area")
@@ -210,10 +232,10 @@ maternity_care_joined <- merge(eng_UAs, maternity_care_tidy, by.x = "CTYUA20CD",
 summary(GCSE_girls_joined$percent_grade_5_plus_maths_english)
 summary(GCSE_boys_joined$percent_grade_5_plus_maths_english)
 
-summary(level_4_joined$Percent_level_4_male)
-summary(level_4_joined$Percent_level_4_female)
-summary(no_quals_joined$No_quals_male)
-summary(no_quals_joined$No_quals_female)
+summary(level_4_female)
+summary(level_4_male)
+summary(no_quals_female)
+summary(no_quals_male)
 
 summary(labour_force_joined$Percent_male_employment)
 summary(labour_force_joined$Percent_female_employment)
@@ -235,8 +257,10 @@ summary(maternity_care_joined$Percentage_with_early_access)
 GCSE_girls_sf <- st_as_sf(GCSE_girls_joined)
 GCSE_boys_sf <- st_as_sf(GCSE_boys_joined)
 
-level_4_sf <- st_as_sf(level_4_joined)
-no_quals_sf <- st_as_sf(no_quals_joined)
+level_4_female_sf <- st_as_sf(level_4_female_joined)
+level_4_male_sf <- st_as_sf(level_4_male_joined)
+no_quals_female_sf <- st_as_sf(no_quals_female_joined)
+no_quals_male_sf <- st_as_sf(no_quals_male_joined)
 
 labour_force_sf <- st_as_sf(labour_force_joined)
 
@@ -254,9 +278,27 @@ maternity_sf <- st_as_sf(maternity_care_joined)
 #Explore the data using interactive maps
 tmap_mode('view')
 
-tm_shape(GCSE_sf) +
+tm_shape(GCSE_girls_sf) +
   tm_borders('black', alpha = 0.5) +
+  tm_fill(col = 'percent_grade_5_plus_maths_english', id = 'la_name', palette = brewer.pal(6, 'RdYlBu')) +
+  tm_layout(title = 'Percentage of girls achieving a Grade 5 or higher in Maths and English GCSEs')
   
+tm_shape(GCSE_boys_sf) +
+  tm_borders('black', alpha = 0.5) +
+  tm_fill(col = 'percent_grade_5_plus_maths_english', id = 'la_name', palette = brewer.pal(6, 'RdYlBu')) +
+  tm_layout(title = 'Percentage of boys achieving a Grade 5 or higher in Maths and English GCSEs')
+
+tm_shape(level_4_female_sf) +
+  tm_borders('black', alpha = 0.5) +
+  tm_fill(col = 'Percent_level_4_female', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
+  tm_layout(title = 'Percentage of females holding qualifications at Level 4 or above')
+
+tm_shape(level_4_male_sf) +
+  tm_borders('black', alpha = 0.5) +
+  tm_fill(col = 'Percent_level_4_male', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
+  tm_layout(title = 'Percentage of males holding qualifications at Level 4 or above')
+#^^^^ NEEDS COLOUR BREAKS EDITED (so it can be compared with female map)
+
 
 
 
@@ -287,7 +329,7 @@ st_write(mps_sf, 'mps_joined.shp', append = TRUE)
 st_write(f_life_expec_sf, 'female_healthy_life_expectancy.shp', append = TRUE)
 st_write(m_life_expec_sf, 'male_healthy_life_expectancy.shp', append = TRUE)
 
-st_write(maternity_care_sf, 'access_to_maternity_care.shp', append = TRUE)
+st_write(maternity_sf, 'access_to_maternity_care.shp', append = TRUE)
 
 
 
