@@ -160,122 +160,13 @@ pay_gap_tidy$Mean <- as.numeric(pay_gap_tidy$Mean)
 sexual_assult_tidy$Men <- as.numeric(sexual_assult_tidy$Men)
 sexual_assult_tidy$Women <- as.numeric(sexual_assult_tidy$Women)
 
-#Explore datasets
-summary(GCSE_girls_joined$percent_grade_5_plus_maths_english)
-summary(GCSE_boys_joined$percent_grade_5_plus_maths_english)
+#Creating variables 
+GCSE_girls <- GCSE_tidy %>%
+  subset(characteristic_gender == 'Girls')
 
-summary(level_4_female)
-summary(level_4_male)
-summary(no_quals_female)
-summary(no_quals_male)
+GCSE_boys <- GCSE_tidy %>%
+  subset(characteristic_gender == 'Boys')
 
-summary(labour_force_joined$Percent_male_employment)
-summary(labour_force_joined$Percent_female_employment)
-
-summary(pay_gap_joined$Mean)
-summary(pay_gap_joined$Median)
-
-summary(sexual_offs_joined$Rate_per_1000_population)
-
-mps_tidy %>% count(Male)
-mps_tidy %>% count(Female)
-
-summary(f_life_expec_joined$Healthy_life_expectancy)
-summary(m_life_expec_joined$Healthy_life_expectancy)
-
-summary(maternity_care_joined$Percentage_with_early_access)
-
-#Transform to sf objects
-GCSE_girls_sf <- st_as_sf(GCSE_girls_joined)
-GCSE_boys_sf <- st_as_sf(GCSE_boys_joined)
-
-level_4_female_sf <- st_as_sf(level_4_female_joined)
-level_4_male_sf <- st_as_sf(level_4_male_joined)
-no_quals_female_sf <- st_as_sf(no_quals_female_joined)
-no_quals_male_sf <- st_as_sf(no_quals_male_joined)
-
-labour_force_sf <- st_as_sf(labour_force_joined)
-
-pay_gap_sf <- st_as_sf(pay_gap_joined)
-
-sexual_offs_sf <- st_as_sf(sexual_offs_joined)
-
-mps_sf <- st_as_sf(mps_joined)
-
-f_life_expec_sf <- st_as_sf(f_life_expec_joined)
-m_life_expec_sf <- st_as_sf(m_life_expec_joined)
-
-maternity_sf <- st_as_sf(maternity_care_joined)
-
-#Explore the data using interactive maps
-#FLIP COLOUR RAMPS??? 
-#Northamptonshire?? 
-
-tmap_mode('view')
-
-tm_shape(GCSE_girls_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'percent_grade_5_plus_maths_english', id = 'la_name', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Percentage of girls achieving a Grade 5 or higher in Maths and English GCSEs')
-  
-tm_shape(GCSE_boys_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'percent_grade_5_plus_maths_english', id = 'la_name', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Percentage of boys achieving a Grade 5 or higher in Maths and English GCSEs')
-
-tm_shape(level_4_female_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'Percent_level_4_female', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Percentage of females holding qualifications at Level 4 or higher')
-
-tm_shape(level_4_male_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'Percent_level_4_male', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Percentage of males holding qualifications at Level 4 or higher')
-#^^^^ NEEDS COLOUR BREAKS EDITED (so it can be compared with female map)
-
-tm_shape(no_quals_female_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'No_quals_female', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Percentage of females holding no qualifications')
-#flip colour ramp?
-#
-
-
-
-tm_shape(pay_gap_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'Mean', id = 'CTYUA20NM', palette = brewer.pal(6, 'RdYlBu')) +
-  tm_layout(title = 'Mean gender pay gap')
-
-
-tm_shape(mps_sf) +
-  tm_borders('black', alpha = 0.5) +
-  tm_fill(col = 'Female', id = 'pcon17nm') +
-  tm_layout(title = 'Female MPs in England')
-
-
-
-
-#Export tidied data to QGIS to create visualisations for write-up 
-st_write(GCSE_girls_sf, 'GCSE_girls_joined.shp', append = TRUE)
-st_write(GCSE_boys_sf, 'GCSE_boys_joined.shp', append = TRUE)
-
-st_write(level_4_sf, 'level_4.shp', append = TRUE)
-st_write(no_quals_sf, 'no_quals.shp', append = TRUE)
-
-st_write(labour_force_sf, 'labour_force_joined.shp', append = TRUE)
-
-st_write(pay_gap_sf, 'gender_pay_gap.shp', append = TRUE)
-
-st_write(sexual_offs_sf, 'sexual_offences.shp', append = TRUE)
-
-st_write(mps_sf, 'mps_joined.shp', append = TRUE)
-
-st_write(f_life_expec_sf, 'female_healthy_life_expectancy.shp', append = TRUE)
-st_write(m_life_expec_sf, 'male_healthy_life_expectancy.shp', append = TRUE)
-
-st_write(maternity_sf, 'access_to_maternity_care.shp', append = TRUE)
 
 
 
@@ -290,16 +181,10 @@ st_write(maternity_sf, 'access_to_maternity_care.shp', append = TRUE)
 
 
 #Create new data frame containing all indicators (the index)
-education_index
+index <- data.frame()
 
 
-inequality_data 
-area_profile
-
-index 
-
-#TEST VVVVV
-labour_force_tidy$difference <- labour_force_tidy$Percent_male_employment - labour_force_tidy$Percent_female_employment
+labour_force_tidy$labour_force_difference <- labour_force_tidy$Percent_male_employment - labour_force_tidy$Percent_female_employment
 
 
 #create rank
@@ -318,35 +203,3 @@ parlimentary_seats
 
 #Calculate index scores
 
-#Spatial analysis
-
-  
-  
-#Define neighbour structure and spatial weights
-eng_neighbours <- poly2nb(eng_UAs)
-plot(eng_UAs$geometry)
-plot(eng_neighbours, coords = eng_UAs$geometry, add = TRUE, col = 'red')
-spatial_weights <- nb2listw(eng_neighbours, zero.policy = TRUE)
-
-#Global Moran's I
-
-
-#Local Moran's I
-
-
-
-#Getis Ord Gi*
-
-
-#Report results 
-
-
-#Join data to shape files
-
-#Transform data to sf ?? 
-
-
-#Visualise data 
-
-
-#Export to QGIS (?) 
