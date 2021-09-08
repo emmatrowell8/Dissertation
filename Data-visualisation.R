@@ -18,8 +18,3 @@ ggscatter(index_imd, x = 'score', y = 'IMD_2019',
           add = 'reg.line', conf.int = TRUE,
           cor.coef = TRUE, cor.method = 'pearson',
           xlab = 'Gender Equality Index score', ylab = 'Index of Multiple Deprivation Score (2019)')
-
-#Maps
-
-
-
