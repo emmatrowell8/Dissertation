@@ -1,3 +1,4 @@
+#Graphs
 #Ridge plot showing regional variation in index score
 ggplot(index, aes(x = score, y = Region, fill = Region)) +
   geom_density_ridges() +
@@ -9,7 +10,6 @@ ggplot(index, aes(x = score, y = Region, fill = Region)) +
 
 #Correlation between index score and IMD 
 imd <- read_csv('societal-wellbeing_imd2019_indicesbyla (1).csv')
-
 index_imd <- merge(index, imd, by.x = 'Area_name', by.y = 'UA')
 
 corr <- cor.test(index_imd$score, index_imd$IMD_2019, method = 'pearson')
@@ -19,6 +19,7 @@ ggscatter(index_imd, x = 'score', y = 'IMD_2019',
           cor.coef = TRUE, cor.method = 'pearson',
           xlab = 'Gender Equality Index score', ylab = 'Index of Multiple Deprivation Score (2019)')
 
+#Maps
 
 
 

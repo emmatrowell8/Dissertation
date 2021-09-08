@@ -158,7 +158,6 @@ pay_gap_tidy$Mean <- as.numeric(pay_gap_tidy$Mean)
 
 sexual_assault_tidy$Men <- as.numeric(sexual_assault_tidy$Men)
 sexual_assault_tidy$Women <- as.numeric(sexual_assault_tidy$Women)
-sexual_assault_tidy$Region <- 
 
 #Creating variables 
 GCSE_girls <- GCSE_tidy %>%
@@ -323,7 +322,7 @@ index$score_rank <- rank(index$score)
 index$score <- as.numeric(index$score)
 
 #Export index to QGIS for visualisation
-write_csv(index, 'final-index.csv')
+#write_csv(index, 'final-index.csv')
 
 #Calculate mean index score
 mean_score <- mean(index$score)
