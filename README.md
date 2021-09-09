@@ -10,6 +10,6 @@ Please follow the order below when accessing code:
 
 All data used is accessible from the 'Data' folder, with full references in the final report. 
 Datasets have been divided into their respective indicators and zipped. 
-The boundaries file was too large to upload, so please access that via the link below:
+The boundaries file was too large to upload to GitHub, so please access that via the link below:
 
 https://liveuclac-my.sharepoint.com/:f:/g/personal/ucfaevt_ucl_ac_uk/EirQStLrTCVMqauNjiAeFlUBEOE1KYwtQmhJpz0N27iOoA?e=lh7ZGU 
