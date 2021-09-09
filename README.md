@@ -8,4 +8,4 @@ Please follow the order below when accessing code:
 2. Spatial_Analysis.R
 3. Data-visualisation.R 
 
-All data used is accessible from the 'Data' folder, with full references in the final report
+All data used is accessible from the 'Data' folder, with full references in the final report.
