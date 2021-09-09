@@ -65,11 +65,10 @@ quadrant[index_local_moran[,5]>signif] <- 0
 breaks <- c(0,1,2,3,4)
 colours <- c('white','blue',rgb(0, 0, 1, alpha = 0.4), rgb(1, 0, 0, alpha = 0.4),'red')
 
-##########NOT WORKING??????? 
-tm_shape(index_sf$geometry) +
-  tm_fill(col = colours[findInterval(quadrant, breaks, all.inside = FALSE)], title = 'LISA') +
-  tm_borders(alpha = 0.2) +
-  tm_layout(frame = FALSE, legend.show = TRUE)
+np <- findInterval(quadrant, breaks, all.inside = FALSE)
+plot(index_sf$geometry, col = colours[np])
+mtext('LISA', cex = 1.5, side = 3, line = 1)
+legend('topleft', legend = c('Insignificant','Low-Low','Low-High','High-Low','High-High'), fill = colours, bty = 'n')
 
 #Getis Ord Gi* 
 getis_weights <- nb2listw(eng_neighbours, style = 'B', zero.policy = TRUE)

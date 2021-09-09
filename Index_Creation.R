@@ -19,6 +19,9 @@ library(magrittr)
 library(hrbrthemes)
 library(ggridges)
 library(ggthemes)
+library(maptools)
+library(gstat)
+library(classInt)
 
 #Import datasets
 GCSE_grades <- read_csv('Education/2019_GCSEs.csv')
