@@ -1,10 +1,18 @@
 #Graphs
+#Histogram of index scores 
+ggplot(index, aes(x = score)) +
+  geom_histogram(fill = '#8bb05a') +
+  xlab('Gender Equality Index Score') +
+  ylab('UAs count')
+  theme_ipsum() +
+  theme(text = element_text(family = 'Open Sans', size = 15))
+
 #Ridge plot showing regional variation in index score
 ggplot(index, aes(x = score, y = Region, fill = Region)) +
   geom_density_ridges() +
   theme_ridges() +
   theme(legend.position = 'none') +
-  scale_fill_brewer(palette = "YlOrBr") +
+  scale_fill_brewer(palette = "Greens") +
   xlab('Gender Equality Index Score') +
   theme(text = element_text(family = 'Open Sans', size = 15))
 
