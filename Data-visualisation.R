@@ -1,7 +1,7 @@
 #Graphs
 #Histogram of index scores 
 ggplot(index, aes(x = score)) +
-  geom_histogram(fill = '#8bb05a') +
+  geom_histogram(fill = '#77c379') +
   xlab('Gender Equality Index Score') +
   ylab('UAs count')
   theme_ipsum() +
